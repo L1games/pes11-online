@@ -1,0 +1,263 @@
+<!doctype html>
+<html lang="es">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>PES 2011</title>
+    <link rel="stylesheet" href="css/styles.css">
+  </head>
+  <body>
+  
+    <main class="layout">
+      <section class="player-col">
+        <div class="player" id="stage">
+          <canvas id="canvas" width="480" height="272" oncontextmenu="event.preventDefault()" tabindex="-1"></canvas>
+          <div id="overlay">
+            <h1 class="title">PES 2011 Web</h1>
+            <p class="subtitle">PES 2011 para el navegador.</p>
+            <div class="load-line">
+              <span id="wasmLabel">Preparando...</span>
+              <progress id="wasmProgress" max="100" hidden></progress>
+            </div>
+            <div class="load-line">
+              <span id="status">Descargando...</span>
+              <progress id="progress" max="100" value="0" hidden></progress>
+            </div>
+            <div class="compat-notice" id="compatNotice" hidden></div>
+            <div class="start-choice" id="startChoice" hidden>
+              <button type="button" class="btn primary" id="startGame">Jugar</button>
+            </div>
+          </div>
+          <div class="touch-pad" id="touchPad" hidden>
+            <div class="touch-btn touch-shoulder touch-l" data-button="L">L</div>
+            <div class="touch-btn touch-shoulder touch-r" data-button="R">R</div>
+            <div class="touch-dpad" data-dpad></div>
+            <div class="touch-stick" data-stick><div class="touch-stick-knob"></div></div>
+            <div class="touch-face">
+              <div class="touch-btn touch-triangle" data-button="Triangle">&#9651;</div>
+              <div class="touch-btn touch-circle" data-button="Circle">&#9675;</div>
+              <div class="touch-btn touch-cross" data-button="Cross">&#10005;</div>
+              <div class="touch-btn touch-square" data-button="Square">&#9633;</div>
+            </div>
+            <div class="touch-btn touch-small touch-select" data-button="Select">SELECT</div>
+            <div class="touch-btn touch-small touch-start" data-button="Start">START</div>
+          </div>
+          <div class="stage-dialog" id="savedataDialog" hidden>
+            <div class="stage-dialog-panel">
+              <h2 id="savedataTitle">Guardar partida</h2>
+              <div class="hint">Flechas o cruceta para elegir, Enter o Cross para aceptar, Esc o Circle para cancelar.</div>
+              <div class="savedata-list" id="savedataList"></div>
+              <div class="modal-footer">
+                <span class="modal-status" id="savedataStatus"></span>
+                <button class="btn small" id="savedataCancel">Cancelar</button>
+                <button class="btn small primary" id="savedataConfirm">Aceptar</button>
+              </div>
+            </div>
+          </div>
+          <div class="toast" id="toast" hidden></div>
+          <div class="net-status" id="netStatus" role="status" hidden></div>
+          <div class="pak-status" id="pakStatus" role="status" hidden></div>
+        </div>
+        <div class="now-playing">
+          <div class="now-playing-title">
+            <span id="nowPlaying"></span>
+          </div>
+          <span id="fps"></span>
+        </div>
+        <div class="toolbar">
+          <button class="btn" id="fullscreen">Pantalla completa</button>
+          <button class="btn" id="openBindings">Controles</button>
+        </div>
+ 
+      </section>
+  
+      <aside class="sidebar">
+        <div class="tabs">
+          <button class="tab active" data-panel="panelGeneral">General</button>
+          <button class="tab" data-panel="panelGraphics">Gráficos</button>
+          <button class="tab" data-panel="panelSaves">Partidas</button>
+          <button class="tab" data-panel="panelData">Datos</button>
+          <button class="tab" data-panel="panelLog">Log</button>
+        </div>
+  
+        <div class="panel settings-panel" id="panelGeneral">
+          <div class="note">Los ajustes se guardan en este navegador al cambiarlos. El volumen se aplica al instante; el resto, al reiniciar el juego.</div>
+          <div class="section-label">Audio</div>
+          <div class="setRow"><span>Volumen</span>
+          <span class="range">
+            <input type="range" min="0" max="100" step="5" value="100" data-section="audio" data-key="volume" id="volumeRange">
+            <output id="volumeValue" for="volumeRange">100%</output>
+          </span></div>
+          <div class="section-label">Descargas</div>
+          <div class="setRow"><span>Aviso de carga sobre el juego</span>
+          <select id="showLoadingNotice">
+            <option value="1">Sí (por defecto)</option>
+            <option value="0">No</option>
+          </select></div>
+          <div class="setRow"><span>Descargar el juego completo (unos 300 MB)</span>
+          <select id="downloadFullPak">
+            <option value="0">No (se baja mientras jugás)</option>
+            <option value="1">Sí, en segundo plano</option>
+          </select></div>
+          <div class="section-label">Controles táctiles</div>
+          <div class="setRow"><span>Mando en pantalla</span>
+          <select id="touchControls">
+            <option value="auto">Automático (pantallas táctiles)</option>
+            <option value="on">Siempre</option>
+            <option value="off">Nunca</option>
+          </select></div>
+        </div>
+  
+        <div class="panel settings-panel" id="panelGraphics" hidden>
+          <div class="setRow"><span>Renderer</span>
+          <select data-section="render" data-key="backend" id="rendererSelect">
+            <option value="auto" selected>Automático (WebGPU, si no WebGL2)</option>
+            <option value="webgpu">WebGPU</option>
+            <option value="webgl2">WebGL2</option>
+          </select></div>
+          <div class="note" id="rendererNote">El cambio de renderer se aplica al reiniciar el juego.</div>
+          <button class="btn small" id="rendererRetry" hidden>Reiniciar con WebGL2</button>
+          <div class="setRow"><span>Resolución interna</span>
+          <select data-section="render" data-key="scale" id="scaleSelect">
+            <option value="1">1x 480x272 (la más rápida)</option>
+            <option value="2" selected>2x 960x544</option>
+            <option value="3">3x 1440x816</option>
+          </select></div>
+          <div class="setRow"><span>Suavizar imagen</span>
+          <select data-section="render" data-key="linear_filter">
+            <option value="0">No (píxeles nítidos)</option>
+            <option value="1">Sí</option>
+          </select></div>
+          <div class="setRow"><span>Cámara de estadio completo</span>
+          <select data-section="game" data-key="stadium_camera">
+            <option value="1" selected>Sí (Normal y Amplia, por defecto)</option>
+            <option value="0">No (cámara original)</option>
+          </select></div>
+          <div class="note">La resolución interna, el suavizado y la cámara se aplican al reiniciar el juego.</div>
+        </div>
+  
+        <div class="panel settings-panel" id="panelSaves" hidden>
+          <div class="section-label">Partidas guardadas</div>
+          <div class="note">Cargá una partida (carpeta de PSP/SAVEDATA, o un .zip con esas carpetas). Se guardan en este navegador; si el juego ya está corriendo, recargá la página para que las lea.</div>
+          <div class="row">
+            <button class="btn small primary" id="importSavesZip" title="Un .zip con una o más carpetas de PSP/SAVEDATA">Cargar .zip</button>
+            <button class="btn small" id="importSavesDir" title="Elegí la carpeta de la partida (o PSP/SAVEDATA entera)">Cargar carpeta</button>
+            <button class="btn small" id="exportAllSaves" title="Descarga todas las partidas en un .zip">Descargar todo</button>
+          </div>
+          <input type="file" id="importSavesZipFile" accept=".zip,application/zip" multiple hidden>
+          <input type="file" id="importSavesDirFile" webkitdirectory multiple hidden>
+          <div id="saveList"></div>
+          <div class="note" id="savesStatus"></div>
+        </div>
+  
+        <div class="panel settings-panel" id="panelData" hidden>
+          <div class="section-label">Datos descargados</div>
+          <div class="note">El motor y las partes del juego que se bajan quedan guardados en este navegador, así la próxima vez carga sin volver a descargarlos.</div>
+          <div class="row">
+            <button class="btn small" id="clearDownloads" title="Borra los datos del juego guardados en este navegador">Borrar datos descargados</button>
+            <span class="note" id="downloadsStatus"></span>
+          </div>
+        </div>
+        
+        <div class="panel" id="panelLog" hidden>
+          <div class="row">
+            <label class="check"><input type="checkbox" id="showlog"> Mostrar</label>
+            <button class="btn small" id="clearlog">Limpiar</button>
+            <button class="btn small" id="copylog" title="Copia las últimas miles de líneas">Copiar</button>
+            <button class="btn small" id="copytail" title="Copia solo las últimas 300 líneas">Copiar final</button>
+          </div>
+          <span id="dropped"></span>
+          <pre id="log" hidden></pre>
+        </div>
+        <div class="note settings-status" id="settingsStatus"></div>
+      </aside>
+    </main>
+  
+    <div class="modal" id="bindingsModal" role="dialog" aria-modal="true" aria-labelledby="bindingsTitle" hidden>
+      <div class="modal-panel" id="bindingsPanel">
+        <h2 id="bindingsTitle">Configuración de controles</h2>
+        <div class="hint">Tocá una asignación y presioná una tecla o un botón del mando. Esc cancela.</div>
+        <div class="bindings-toolbar">
+        <div class="row bindingsTools">
+          <button class="btn small" id="autoBindings">Asignar mandos autom&#225;ticamente</button>
+          <button class="btn small" id="exportBindings" title="Descarga la configuración de controles a un archivo">Guardar archivo</button>
+          <button class="btn small" id="importBindings" title="Carga una configuración de controles guardada">Cargar archivo</button>
+          <input type="file" id="importBindingsFile" accept=".json,application/json" hidden>
+        </div>
+        <div class="bindings-mode" role="group" aria-label="Tipo de control">
+          <button id="showGamepadBindings" class="active" aria-pressed="true" aria-controls="gamepadBindingsPanel">Mando</button>
+          <button id="showKeyboardBindings" aria-pressed="false" aria-controls="keyboardBindingsPanel">Teclado</button>
+        </div>
+        </div>
+        <div id="gamepadBindingsPanel">
+          <h3 class="bindings-section-title">Jugador</h3>
+          <div class="bindings-player-select">
+          <div class="playerTabs" id="playerTabs"></div>
+          <div class="bindRow deviceRow">
+            <button id="prevDevice" title="Dispositivo anterior">&#9664;</button>
+            <span class="current" id="playerDevice"></span>
+            <button id="nextDevice" title="Dispositivo siguiente">&#9654;</button>
+          </div>
+          </div>
+          <p class="hint bindings-detection-hint">Si no te detecta el control, probá moverlo o presionar un botón con la página en foco.</p>
+          <div id="gamepadBindings"></div>
+          <div class="row bindings-player-tools">
+            <button class="btn small" id="resetPlayerBindings">Restablecer este jugador</button>
+          </div>
+        </div>
+        <div id="keyboardBindingsPanel" hidden>
+          <h3>Teclado (Jugador 1)</h3>
+          <div id="keyboardBindings"></div>
+        </div>
+        <details class="bindings-detected">
+          <summary>Mandos detectados y calibración</summary>
+          <div class="hint">Presioná un botón del mando con la página en foco para detectarlo.</div>
+          <div id="padList"></div>
+          <div class="padWizard" id="padWizard" hidden>
+            <div class="padWizardStep" id="padWizardStep"></div>
+            <div class="padWizardNote" id="padWizardNote"></div>
+            <div class="row">
+              <button class="btn small" id="padWizardSkip">Saltar</button>
+              <button class="btn small" id="padWizardCancel">Cancelar</button>
+            </div>
+          </div>
+        </details>
+        <div class="modal-footer">
+          <span class="modal-status" id="bindingsStatus" role="status" aria-live="polite"></span>
+          <button class="btn small" id="resetBindings">Restablecer todo</button>
+          <button class="btn small primary" id="closeBindings">Cerrar</button>
+        </div>
+      </div>
+    </div>
+  
+    <script src="platform_renderer.js"></script>
+    <script src="js/config.js"></script>
+    <script src="js/netserver.js"></script>
+    <script src="js/ads.js"></script>
+    <script src="js/core.js"></script>
+    <script src="js/storage.js"></script>
+    <script src="js/settings.js"></script>
+    <script src="js/runtime/renderer.js"></script>
+    <script src="js/saves.js"></script>
+    <script src="js/data.js"></script>
+    <script src="js/range-cache.js"></script>
+    <script src="js/pakdownload.js"></script>
+    <script src="js/commentary-preload.js"></script>
+    <script src="js/savedata.js"></script>
+    <script src="js/bindings.js"></script>
+    <script src="js/gamepads.js"></script>
+    <script src="js/touch.js"></script>
+    <script src="js/runtime/loader.js"></script>
+    <script src="js/runtime/debug.js"></script>
+    <script src="js/runtime/downloads.js"></script>
+    <script src="js/runtime/module.js"></script>
+    <script src="js/msgdialog.js"></script>
+    <script src="js/runtime/player.js"></script>
+    <script src="js/runtime/background.js"></script>
+    <script src="js/runtime.js"></script>
+    <script src="js/errors.js"></script>
+    <script src="js/ui.js"></script>
+    <script src="js/compat.js"></script>
+    <script src="js/app.js"></script>
+  </body>
+</html>
